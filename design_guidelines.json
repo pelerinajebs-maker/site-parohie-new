@@ -1,0 +1,94 @@
+{
+  "project_name": "Parohia Ortodoxă Română Sfântul Ierarh Nicolae - Sigmir",
+  "theme": "light",
+  "emotions_and_vibe": "Sober, warm, liturgical, pastoral, deeply spiritual, accessible yet premium.",
+  "target_audience": "Parishioners, elderly community, diaspora, donors.",
+  "design_archetype": "ORGANIC & EARTHY mixed with SWISS & HIGH-CONTRAST for editorial readability. Byzantine Modernism.",
+  "typography": {
+    "heading_font": "Cormorant Garamond",
+    "body_font": "Outfit",
+    "font_pairings_instructions": "Use Cormorant Garamond for all headings (H1-H6) to give an elegant, spiritual, orthodox liturgical feel. Use Outfit for body text to ensure maximum legibility, especially for elderly users.",
+    "hierarchy": {
+      "h1": "text-5xl md:text-6xl lg:text-[5rem] leading-none tracking-tight font-medium",
+      "h2": "text-4xl md:text-5xl lg:text-6xl leading-tight tracking-tight font-medium",
+      "h3": "text-2xl md:text-3xl font-medium",
+      "body": "text-lg md:text-xl leading-relaxed",
+      "small_label": "text-sm tracking-[0.2em] uppercase font-bold"
+    }
+  },
+  "colors": {
+    "primary": "#DAA520",
+    "primary_description": "Byzantine Gold - use for subtle accents, separators, active states, buttons.",
+    "background_base": "#FDFBF7",
+    "background_alt": "#F4EFE6",
+    "text_dark": "#2C241B",
+    "text_light": "#FDFBF7",
+    "accents": {
+      "burgundy": "#800020",
+      "royal_blue": "#002366",
+      "discreet_green": "#2E472D"
+    },
+    "instructions": "Avoid generic whites. The entire site must feel like an old, warm parchment or smooth marble. Backgrounds should be #FDFBF7. Use Burgundy (#800020) for the Donation or Renovation section backgrounds to create a sober, serious, high-contrast moment. Use Royal Blue for subtle links or secondary buttons. Text should be a deep warm dark brown/charcoal (#2C241B) rather than pure black."
+  },
+  "layouts_and_spacing": {
+    "general": "Generous spacing. Use p-8, p-16, py-24, py-32 for section padding. Do not cram elements.",
+    "grid_strategy": "Asymmetrical editorial grids. A mix of full-width images and text blocks spanning 5-7 columns out of 12. Create breathing room. Avoid standard 'card' components; prefer borderless rectangular containers with pure background colors and 1px golden or subtle borders.",
+    "hero": "Full height (min-h-screen). Absolute positioning for the church sketch background image. Use mix-blend-multiply or a gentle opacity over the #FDFBF7 background so it looks drawn on the page. Text should be large, kinetic (framer-motion line reveal), left-aligned or centered, overlapping the sketch. Include an elegant scroll indicator.",
+    "navigation": "Sticky, glassmorphism: backdrop-blur-xl bg-[#FDFBF7]/80. Must have clear links, a language switcher (RO/DE/EN), and a prominent 'Donează' button.",
+    "footer": "Generous padding (py-24). Include address, WhatsApp contact link, and quick links."
+  },
+  "components": {
+    "buttons": "Pill-shaped or rounded-sm, but with refined borders. Primary button: bg-[#DAA520] text-[#2C241B]. Secondary button: transparent with border border-[#DAA520] text-[#2C241B] hover:bg-[#DAA520] hover:text-[#2C241B].",
+    "cards": "Avoid heavily shadowed cards. Use flat, large rectangular areas. If borders are needed, use border-[#DAA520]/30.",
+    "marquee": "Slow, organic editorial marquee. Use for spiritual quotes (e.g., 'Pace vouă • Rugați-vă neîncetat') with small gold cross SVG separators.",
+    "whatsapp_contact": "Fixed floating button or prominent button in header/footer. Link to WhatsApp with the number 0787867540.",
+    "donation_section": "Should be highly visible. Create a dedicated section emphasizing the internal IBAN details and a link to the external donation platform."
+  },
+  "motion_and_interactions": {
+    "scroll": "Smooth scrolling via @studio-freight/lenis is MANDATORY.",
+    "hero_reveal": "Line-by-line reveal using Framer Motion for the H1 heading. Staggered fade-up for subheadings and buttons.",
+    "scroll_reveal": "Sections and images should fade and slide up slightly (e.g., y: 30, opacity: 0 -> y: 0, opacity: 1) as they enter the viewport using framer-motion.",
+    "parallax": "Subtle parallax on the hero church sketch image as the user scrolls down."
+  },
+  "media_and_assets": {
+    "image_urls": {
+      "hero_sketch": {
+        "url": "https://customer-assets.emergentagent.com/job_flamboyant-chandrasekhar-7/artifacts/mb7fvvbc_WhatsApp%20Image%202026-07-13%20at%2017.43.39.jpeg",
+        "description": "The client-provided hand-drawn sketch of the church. Use as the main hero background.",
+        "category": "Hero Background"
+      },
+      "church_interior": {
+        "url": "https://images.pexels.com/photos/19474821/pexels-photo-19474821.jpeg",
+        "description": "Luxurious orthodox church interior with detailed frescoes.",
+        "category": "About Parish / History"
+      },
+      "candles": {
+        "url": "https://images.unsplash.com/photo-1476900164809-ff19b8ae5968",
+        "description": "Low angle photo of lightened candles in the dark.",
+        "category": "Spiritual Resources / Prayers"
+      },
+      "bible": {
+        "url": "https://images.pexels.com/photos/8276064/pexels-photo-8276064.jpeg",
+        "description": "Open Bible.",
+        "category": "Priest Word / Catechesis"
+      }
+    },
+    "icons_instructions": "Use lucide-react. Prefer clean, thin lines. No emojis for icons. Use a custom SVG cross where an orthodox cross is needed (e.g., separators)."
+  },
+  "accessibility": {
+    "contrast": "Ensure text contrast is high. Use the deep brown/charcoal (#2C241B) against the light beige (#FDFBF7) background.",
+    "font_size": "Body text must be text-lg or larger to cater to elderly users.",
+    "interactions": "Provide clear focus states. Respect prefers-reduced-motion."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Make creative, distinctive frontends that surprise and delight. Awwwards level.",
+    "Do not use dark colors as gradients. Use solid colors.",
+    "Do not center align the app container in App.css.",
+    "Every interaction needs micro-animations - hover states, transitions.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Use solid background colors for headers over content. DO NOT use complete transparent backgrounds where text would become unreadable.",
+    "All interactive and key informational elements MUST include a data-testid attribute.",
+    "Install and use lenis for smooth scrolling, framer-motion for animations.",
+    "Use Shadcn UI components but heavily customize their classes to remove the default 'SaaS/Vercel' look, fitting the Byzantine modern aesthetic."
+  ]
+}
