@@ -40,3 +40,9 @@ admin@parohiasigmir.ro / Sigmir2025! (see test_credentials.md)
 - Endpoints: POST /api/donations/checkout, GET /api/donations/status/{id}, POST /api/webhook/stripe, GET /api/donations/packages. Collection: payment_transactions.
 - Frontend /doneaza: Stripe card panel (presets + custom) with return polling + status banner; bank IBAN card retained.
 - Security verified: amounts resolved server-side only; frontend never sends amount. Tested 100% (iteration_2).
+
+## Update (2026-07-14) — Email mulțumire donator (Resend)
+- Integrated Emergent-managed Resend email. Env: EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME.
+- On successful donation (payment_status='paid') backend sends a Romanian HTML thank-you email to donor (idempotent via email_sent flag), triggered from /api/donations/status and /api/webhook/stripe.
+- Donate form now collects optional donor name + email; passed to Stripe metadata.
+- Email proxy verified working (returns message id). No regression in donation flow.

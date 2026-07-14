@@ -21,12 +21,14 @@ function StripePanel() {
   const p = t.pages.donate;
   const [selected, setSelected] = useState("candle");
   const [custom, setCustom] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   const pay = async () => {
     setLoading(true);
     try {
-      const body = { origin_url: window.location.origin };
+      const body = { origin_url: window.location.origin, donor_name: name, donor_email: email };
       if (selected === "custom") {
         const amt = parseFloat(custom);
         if (!amt || amt <= 0) { toast.error(p.selectAmount); setLoading(false); return; }
@@ -75,7 +77,13 @@ function StripePanel() {
         <Input type="number" min="5" placeholder={p.customPlaceholder} value={custom} onChange={(e) => setCustom(e.target.value)} className="bg-creamalt border-byzgold/30 mb-4 h-12 text-base" data-testid="donate-custom-input" />
       )}
 
-      <button onClick={pay} disabled={loading} data-testid="donate-card-btn" className="w-full inline-flex items-center justify-center gap-2 bg-inkbrown text-cream px-7 py-4 rounded-sm font-semibold text-lg hover:bg-byzgold hover:text-inkbrown transition-colors disabled:opacity-60">
+      <div className="space-y-3 mb-2">
+        <Input placeholder={p.donorName} value={name} onChange={(e) => setName(e.target.value)} className="bg-creamalt border-byzgold/30 h-12 text-base" data-testid="donate-name" />
+        <Input type="email" placeholder={p.donorEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="bg-creamalt border-byzgold/30 h-12 text-base" data-testid="donate-email" />
+        <p className="text-xs text-inkbrown/50">{p.emailHint}</p>
+      </div>
+
+      <button onClick={pay} disabled={loading} data-testid="donate-card-btn" className="w-full inline-flex items-center justify-center gap-2 bg-inkbrown text-cream px-7 py-4 rounded-sm font-semibold text-lg hover:bg-byzgold hover:text-inkbrown transition-colors disabled:opacity-60 mt-3">
         {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> {p.processing}</> : <><CreditCard className="w-5 h-5" /> {p.payBtn}</>}
       </button>
     </div>

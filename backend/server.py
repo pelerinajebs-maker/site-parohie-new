@@ -283,6 +283,72 @@ DONATION_PACKAGES = {
 CUSTOM_MIN = 5.0
 CUSTOM_MAX = 50000.0
 
+# ---- Email (Emergent-managed Resend) ----
+EMAIL_BASE_URL = "https://integrations.emergentagent.com"
+EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY", "")
+EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Parohia Sigmir")
+
+def donation_email_html(name: str, amount: float, currency: str) -> str:
+    greeting = f"Dragă {name}" if name else "Dragă binefăcătorule"
+    return f"""
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F4EFE6;padding:32px 0;font-family:Georgia,'Times New Roman',serif;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="background:#FDFBF7;border:1px solid #DAA520;">
+      <tr><td style="background:#2C241B;padding:28px 32px;text-align:center;">
+        <div style="color:#DAA520;font-size:13px;letter-spacing:3px;text-transform:uppercase;">Parohia Ortodoxă Română</div>
+        <div style="color:#FDFBF7;font-size:26px;margin-top:6px;">Sfântul Ierarh Nicolae · Sigmir</div>
+      </td></tr>
+      <tr><td style="padding:36px 40px;color:#2C241B;">
+        <p style="font-size:20px;margin:0 0 16px;">{greeting},</p>
+        <p style="font-size:16px;line-height:1.7;margin:0 0 16px;font-family:Arial,sans-serif;">
+          Îți mulțumim din inimă pentru donația ta de <strong>{amount:.2f} {currency}</strong>.
+          Sprijinul tău ține candela aprinsă și ajută la înnoirea sfântului nostru lăcaș.
+        </p>
+        <p style="font-size:16px;line-height:1.7;margin:0 0 24px;font-family:Arial,sans-serif;">
+          Numele tău va fi pomenit în rugăciunile parohiei. Dumnezeu să te binecuvânteze și să-ți răsplătească dărnicia!
+        </p>
+        <div style="border-top:1px solid #DAA520;margin:24px 0;"></div>
+        <p style="font-size:14px;color:#800020;margin:0;font-family:Arial,sans-serif;">
+          Cu binecuvântare,<br/>Parohia Ortodoxă Română „Sfântul Ierarh Nicolae" din Sigmir<br/>
+          Sigmir, Bistrița-Năsăud, România
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+"""
+
+async def send_donation_thankyou(tx: dict):
+    """Send a thank-you email once per paid donation (idempotent)."""
+    if not EMAIL_KEY:
+        return
+    if tx.get("email_sent"):
+        return
+    meta = tx.get("metadata") or {}
+    donor_email = meta.get("donor_email")
+    if not donor_email:
+        return
+    donor_name = meta.get("donor_name") or ""
+    amount = tx.get("amount", 0.0)
+    currency = (tx.get("currency") or "ron").upper()
+    payload = {
+        "to": [donor_email],
+        "subject": "Mulțumim pentru donația ta • Parohia Sigmir",
+        "html": donation_email_html(donor_name, amount, currency),
+        "from_name": EMAIL_FROM_NAME,
+        "contact_email": os.environ.get("ADMIN_EMAIL", "contact@parohiasigmir.ro"),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30) as c:
+            resp = await c.post(f"{EMAIL_BASE_URL}/api/v1/email/send",
+                                headers={"X-Email-Key": EMAIL_KEY}, json=payload)
+            resp.raise_for_status()
+        await db.payment_transactions.update_one(
+            {"session_id": tx["session_id"]}, {"$set": {"email_sent": True}})
+        logger.info(f"Donation thank-you email sent to {donor_email}")
+    except Exception as e:
+        logger.error(f"Failed to send donation email: {e}")
+
 class DonationCheckoutIn(BaseModel):
     package_id: Optional[str] = None
     custom_amount: Optional[float] = None
@@ -354,6 +420,9 @@ async def donation_status(session_id: str):
             {"$set": {"status": status.status, "payment_status": status.payment_status,
                       "updated_at": now_iso()}},
         )
+        if status.payment_status == "paid":
+            fresh = await db.payment_transactions.find_one({"session_id": session_id})
+            await send_donation_thankyou(fresh)
     return {
         "status": status.status,
         "payment_status": status.payment_status,
@@ -380,6 +449,9 @@ async def stripe_webhook(request: Request):
                 {"$set": {"payment_status": event.payment_status,
                           "updated_at": now_iso()}},
             )
+            if event.payment_status == "paid":
+                fresh = await db.payment_transactions.find_one({"session_id": event.session_id})
+                await send_donation_thankyou(fresh)
     return {"received": True}
 
 @api.get("/donations/packages")
