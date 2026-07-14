@@ -1,55 +1,64 @@
-import { useEffect } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-import { HOME } from "@/constants/testIds";
+import { LangProvider } from "@/i18n";
+import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider } from "@/context/SettingsContext";
+import Layout from "@/components/Layout";
+import Home from "@/pages/Home";
+import { About, History, Community, ResourcesHub } from "@/pages/StaticPages";
+import { ContentList, ContentDetail } from "@/pages/Content";
+import CalendarPage from "@/pages/CalendarPage";
+import Renovation from "@/pages/Renovation";
+import Contact from "@/pages/Contact";
+import Donate from "@/pages/Donate";
+import Login from "@/pages/Login";
+import Admin from "@/pages/Admin";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          data-testid={HOME.emergentLink}
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+function Site({ children }) {
+  return <Layout>{children}</Layout>;
+}
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <LangProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Site><Home /></Site>} />
+              <Route path="/despre" element={<Site><About /></Site>} />
+              <Route path="/despre/istoric" element={<Site><History /></Site>} />
+              <Route path="/despre/comunitate" element={<Site><Community /></Site>} />
+
+              <Route path="/revista" element={<Site><ContentList kind="magazine" base="/revista" pageKey="magazine" /></Site>} />
+              <Route path="/revista/:id" element={<Site><ContentDetail base="/revista" /></Site>} />
+
+              <Route path="/anunturi" element={<Site><ContentList kind="announcement" base="/anunturi" pageKey="announcements" /></Site>} />
+              <Route path="/anunturi/:id" element={<Site><ContentDetail base="/anunturi" /></Site>} />
+
+              <Route path="/renovare" element={<Site><Renovation /></Site>} />
+
+              <Route path="/resurse" element={<Site><ResourcesHub /></Site>} />
+              <Route path="/resurse/calendar" element={<Site><CalendarPage /></Site>} />
+              <Route path="/resurse/hram" element={<Site><ContentList kind="resource" category="patron" base="/resurse/hram" pageKey="patron" /></Site>} />
+              <Route path="/resurse/hram/:id" element={<Site><ContentDetail base="/resurse/hram" /></Site>} />
+              <Route path="/resurse/cuvantul-preotului" element={<Site><ContentList kind="resource" category="priest" base="/resurse/cuvantul-preotului" pageKey="priest" /></Site>} />
+              <Route path="/resurse/cuvantul-preotului/:id" element={<Site><ContentDetail base="/resurse/cuvantul-preotului" /></Site>} />
+              <Route path="/resurse/catehizare" element={<Site><ContentList kind="resource" category="catechesis" base="/resurse/catehizare" pageKey="catechesis" /></Site>} />
+              <Route path="/resurse/catehizare/:id" element={<Site><ContentDetail base="/resurse/catehizare" /></Site>} />
+              <Route path="/resurse/rugaciuni" element={<Site><ContentList kind="resource" category="prayers" base="/resurse/rugaciuni" pageKey="prayers" /></Site>} />
+              <Route path="/resurse/rugaciuni/:id" element={<Site><ContentDetail base="/resurse/rugaciuni" /></Site>} />
+
+              <Route path="/contact" element={<Site><Contact /></Site>} />
+              <Route path="/doneaza" element={<Site><Donate /></Site>} />
+
+              <Route path="/admin/login" element={<Login />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </BrowserRouter>
+        </SettingsProvider>
+      </AuthProvider>
+    </LangProvider>
   );
 }
 
