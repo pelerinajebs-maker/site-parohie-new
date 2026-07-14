@@ -12,6 +12,9 @@ from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 import httpx
+from emergentintegrations.payments.stripe.checkout import (
+    StripeCheckout, CheckoutSessionRequest, CheckoutStatusResponse,
+)
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends
 from starlette.middleware.cors import CORSMiddleware
@@ -266,6 +269,124 @@ async def calendar(year: int, month: int, day: int):
             for rd in data.get("readings", [])
         ],
     }
+
+# ------------------ Stripe donations ------------------
+STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
+DONATION_CURRENCY = "ron"
+# Server-defined preset donation packages (RON)
+DONATION_PACKAGES = {
+    "seed": 50.0,
+    "candle": 100.0,
+    "brick": 250.0,
+    "pillar": 500.0,
+}
+CUSTOM_MIN = 5.0
+CUSTOM_MAX = 50000.0
+
+class DonationCheckoutIn(BaseModel):
+    package_id: Optional[str] = None
+    custom_amount: Optional[float] = None
+    origin_url: str
+    donor_name: Optional[str] = None
+    donor_email: Optional[str] = None
+
+@api.post("/donations/checkout")
+async def create_donation_checkout(payload: DonationCheckoutIn):
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Stripe nu este configurat")
+    # amount resolved SERVER-SIDE only
+    if payload.package_id:
+        if payload.package_id not in DONATION_PACKAGES:
+            raise HTTPException(status_code=400, detail="Pachet invalid")
+        amount = DONATION_PACKAGES[payload.package_id]
+    elif payload.custom_amount is not None:
+        amount = round(float(payload.custom_amount), 2)
+        if amount < CUSTOM_MIN or amount > CUSTOM_MAX:
+            raise HTTPException(status_code=400, detail=f"Suma trebuie să fie între {CUSTOM_MIN} și {CUSTOM_MAX} RON")
+    else:
+        raise HTTPException(status_code=400, detail="Selectează o sumă")
+
+    origin = payload.origin_url.rstrip("/")
+    success_url = f"{origin}/doneaza?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin}/doneaza"
+    metadata = {
+        "type": "donation",
+        "package_id": payload.package_id or "custom",
+        "donor_name": payload.donor_name or "",
+        "donor_email": payload.donor_email or "",
+    }
+
+    webhook_url = f"{origin}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    req = CheckoutSessionRequest(
+        amount=amount, currency=DONATION_CURRENCY,
+        success_url=success_url, cancel_url=cancel_url, metadata=metadata,
+    )
+    session = await stripe_checkout.create_checkout_session(req)
+
+    await db.payment_transactions.insert_one({
+        "session_id": session.session_id,
+        "amount": amount,
+        "currency": DONATION_CURRENCY,
+        "metadata": metadata,
+        "payment_status": "pending",
+        "status": "initiated",
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    })
+    return {"url": session.url, "session_id": session.session_id}
+
+@api.get("/donations/status/{session_id}")
+async def donation_status(session_id: str):
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Stripe nu este configurat")
+    tx = await db.payment_transactions.find_one({"session_id": session_id})
+    if not tx:
+        raise HTTPException(status_code=404, detail="Tranzacție inexistentă")
+
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+    status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+
+    # Update only if not already finalized (idempotent)
+    if tx.get("payment_status") != "paid":
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {"status": status.status, "payment_status": status.payment_status,
+                      "updated_at": now_iso()}},
+        )
+    return {
+        "status": status.status,
+        "payment_status": status.payment_status,
+        "amount_total": status.amount_total,
+        "currency": status.currency,
+    }
+
+@api.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Stripe nu este configurat")
+    body = await request.body()
+    sig = request.headers.get("Stripe-Signature")
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+    try:
+        event = await stripe_checkout.handle_webhook(body, sig)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Webhook error: {e}")
+    if event.session_id:
+        tx = await db.payment_transactions.find_one({"session_id": event.session_id})
+        if tx and tx.get("payment_status") != "paid":
+            await db.payment_transactions.update_one(
+                {"session_id": event.session_id},
+                {"$set": {"payment_status": event.payment_status,
+                          "updated_at": now_iso()}},
+            )
+    return {"received": True}
+
+@api.get("/donations/packages")
+async def donation_packages():
+    return {"currency": DONATION_CURRENCY.upper(),
+            "packages": DONATION_PACKAGES,
+            "custom_min": CUSTOM_MIN, "custom_max": CUSTOM_MAX}
 
 app.include_router(api)
 
