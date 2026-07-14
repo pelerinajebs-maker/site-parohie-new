@@ -33,7 +33,7 @@ export default function Newsletter() {
 
   return (
     <div data-testid="newsletter-page">
-      <PageHero kicker={t.nav.resources} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.resources} title={p.title} intro={p.intro} pageKey="newsletter" />
       <section className="py-16 bg-cream">
         <div className="max-w-6xl mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-12">
           <Reveal>

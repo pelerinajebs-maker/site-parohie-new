@@ -30,7 +30,7 @@ export default function CalendarPage() {
 
   return (
     <div data-testid="calendar-page">
-      <PageHero kicker={t.nav.resources} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.resources} title={p.title} intro={p.intro} pageKey="calendar" />
       <section className="py-16 bg-cream">
         <div className="max-w-6xl mx-auto px-5 lg:px-8 grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-5">

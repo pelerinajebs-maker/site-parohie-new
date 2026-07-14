@@ -33,7 +33,7 @@ export default function Contact() {
 
   return (
     <div data-testid="contact-page">
-      <PageHero kicker={t.nav.contact} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.contact} title={p.title} intro={p.intro} pageKey="contact" />
 
       <section className="py-16 bg-cream">
         <div className="max-w-6xl mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-12">

@@ -249,12 +249,13 @@ const dict = {
 const LangContext = createContext(null);
 
 export function LangProvider({ children }) {
-  const [lang, setLangState] = useState(() => localStorage.getItem("lang") || "ro");
+  // Site is Romanian-only. Lang is locked to "ro".
+  const [lang, setLangState] = useState("ro");
   const setLang = useCallback((l) => {
     setLangState(l);
     localStorage.setItem("lang", l);
   }, []);
-  const t = dict[lang];
+  const t = dict[lang] || dict.ro;
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
       {children}

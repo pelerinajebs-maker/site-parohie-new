@@ -46,3 +46,10 @@ admin@parohiasigmir.ro / Sigmir2025! (see test_credentials.md)
 - On successful donation (payment_status='paid') backend sends a Romanian HTML thank-you email to donor (idempotent via email_sent flag), triggered from /api/donations/status and /api/webhook/stripe.
 - Donate form now collects optional donor name + email; passed to Stripe metadata.
 - Email proxy verified working (returns message id). No regression in donation flow.
+
+## Update (2026-07-14) — Newsletter + Super-admin editable content
+- Newsletter subpage /resurse/newsletter (Ziarul Lumina + Revista Renașterea links) with Resend subscribe + welcome email.
+- Endpoints: /api/newsletter/subscribe, /subscribers (auth), /broadcast (auth). Collection newsletter_subscribers.
+- Super-admin editable content: /api/pages GET (public), /api/pages/{key} PUT (auth). SiteContentContext overrides i18n on Home + History (texts + images). Admin 'Pagini' tab.
+- Donation amounts editable: settings.donation_packages drives /api/donations/packages and checkout (server-side). Admin Settings packages editor.
+- Admin new tabs: Pagini, Newsletter. Tested 100% (iteration_3).

@@ -12,7 +12,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useSiteContent } from "@/context/SiteContentContext";
 
-const LANGS = ["ro", "de", "en"];
 const emptyML = { ro: "", de: "", en: "" };
 
 // Editable page config: which text blocks + media each page exposes
@@ -48,6 +47,89 @@ const PAGE_CONFIG = {
     ],
     media: [{ k: "image", l: "Imagine principală" }],
   },
+  about: {
+    label: "Despre parohie",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  community: {
+    label: "Comunitate",
+    texts: [
+      { k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true },
+      { k: "groups", l: "Titlu grupuri" },
+      { k: "g1", l: "Grup 1" }, { k: "g2", l: "Grup 2" }, { k: "g3", l: "Grup 3" },
+      { k: "activities", l: "Titlu activități" },
+      { k: "a1", l: "Activitate 1" }, { k: "a2", l: "Activitate 2" }, { k: "a3", l: "Activitate 3" },
+    ],
+    media: [],
+  },
+  resources: {
+    label: "Resurse duhovnicești (hub)",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  renovation: {
+    label: "Renovare biserică",
+    texts: [
+      { k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true },
+      { k: "state", l: "Titlu — Starea actuală" }, { k: "stateText", l: "Text — Starea actuală", textarea: true },
+      { k: "goals", l: "Titlu — Obiective" },
+      { k: "g1", l: "Obiectiv 1" }, { k: "g2", l: "Obiectiv 2" }, { k: "g3", l: "Obiectiv 3" },
+      { k: "gallery", l: "Titlu — Galerie" },
+      { k: "support", l: "Titlu — Cum ajuți" }, { k: "supportText", l: "Text — Cum ajuți", textarea: true },
+    ],
+    media: [],
+  },
+  contact: {
+    label: "Contact",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  donate: {
+    label: "Donează",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  newsletter: {
+    label: "Newsletter",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  calendar: {
+    label: "Calendar ortodox",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  patron: {
+    label: "Hramul parohiei",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  priest: {
+    label: "Cuvântul Preotului",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  catechesis: {
+    label: "Catehizare",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  prayers: {
+    label: "Rugăciuni",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  announcements: {
+    label: "Anunțuri (pagina listă)",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
+  magazine: {
+    label: "Revista parohială (listă)",
+    texts: [{ k: "title", l: "Titlu" }, { k: "intro", l: "Introducere", textarea: true }],
+    media: [],
+  },
 };
 
 function MLField({ label, value, onChange, textarea }) {
@@ -55,13 +137,9 @@ function MLField({ label, value, onChange, textarea }) {
   return (
     <div>
       <label className="text-sm font-semibold text-inkbrown block mb-1">{label}</label>
-      <div className="grid grid-cols-3 gap-2">
-        {LANGS.map((l) => (
-          <Comp key={l} placeholder={l.toUpperCase()} value={value?.[l] || ""}
-            onChange={(e) => onChange({ ...value, [l]: e.target.value })}
-            className="bg-creamalt border-byzgold/30 text-sm" rows={textarea ? 3 : undefined} />
-        ))}
-      </div>
+      <Comp placeholder="Text în română" value={value?.ro || ""}
+        onChange={(e) => onChange({ ...value, ro: e.target.value })}
+        className="bg-creamalt border-byzgold/30 text-sm" rows={textarea ? 3 : undefined} />
     </div>
   );
 }
@@ -304,6 +382,23 @@ function SettingsManager() {
       <MLField label="Program oficiu" value={s.office_hours} onChange={(v) => setS({ ...s, office_hours: v })} />
 
       <div className="pt-4 border-t border-byzgold/20">
+        <div className="font-semibold text-inkbrown mb-3">Fondul de renovare (bara de progres)</div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-inkbrown/60">Obiectiv (RON)</label>
+            <Input type="number" value={s.renov_goal ?? 0} onChange={(e) => setS({ ...s, renov_goal: parseFloat(e.target.value) || 0 })} className="bg-creamalt border-byzgold/30" data-testid="set-renov-goal" />
+          </div>
+          <div>
+            <label className="text-xs text-inkbrown/60">Strâns până acum (RON)</label>
+            <Input type="number" value={s.renov_raised ?? 0} onChange={(e) => setS({ ...s, renov_raised: parseFloat(e.target.value) || 0 })} className="bg-creamalt border-byzgold/30" data-testid="set-renov-raised" />
+          </div>
+        </div>
+        <div className="mt-3">
+          <MLField label="Mesaj sub bară" value={s.renov_note} onChange={(v) => setS({ ...s, renov_note: v })} textarea />
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-byzgold/20">
         <div className="flex items-center justify-between mb-3">
           <span className="font-semibold text-inkbrown">Sume donații (RON)</span>
           <button onClick={() => setS({ ...s, donation_packages: [...(s.donation_packages || []), { id: `pkg${Date.now()}`, amount: 0, label: { ...emptyML } }] })}
@@ -317,12 +412,8 @@ function SettingsManager() {
                 <Input type="number" value={pkg.amount} onChange={(e) => { const arr = [...s.donation_packages]; arr[idx] = { ...pkg, amount: parseFloat(e.target.value) || 0 }; setS({ ...s, donation_packages: arr }); }} className="bg-cream border-byzgold/30" data-testid={`package-amount-${idx}`} />
               </div>
               <div className="flex-1 min-w-[240px]">
-                <label className="text-xs text-inkbrown/60">Etichetă (RO / DE / EN)</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {LANGS.map((l) => (
-                    <Input key={l} placeholder={l.toUpperCase()} value={pkg.label?.[l] || ""} onChange={(e) => { const arr = [...s.donation_packages]; arr[idx] = { ...pkg, label: { ...pkg.label, [l]: e.target.value } }; setS({ ...s, donation_packages: arr }); }} className="bg-cream border-byzgold/30 text-sm" />
-                  ))}
-                </div>
+                <label className="text-xs text-inkbrown/60">Etichetă</label>
+                <Input placeholder="ex. Lumânare" value={pkg.label?.ro || ""} onChange={(e) => { const arr = [...s.donation_packages]; arr[idx] = { ...pkg, label: { ...pkg.label, ro: e.target.value } }; setS({ ...s, donation_packages: arr }); }} className="bg-cream border-byzgold/30 text-sm" />
               </div>
               <button onClick={() => { const arr = s.donation_packages.filter((_, i) => i !== idx); setS({ ...s, donation_packages: arr }); }} className="p-2 text-burgundy" data-testid={`package-del-${idx}`}><Trash2 className="w-4 h-4" /></button>
             </div>

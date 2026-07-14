@@ -5,9 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown, MapPin, Phone, Mail, MessageCircle } from "lucide-react";
 import { useLang, ml } from "@/i18n";
 import { useSettings } from "@/context/SettingsContext";
+import { useSiteContent } from "@/context/SiteContentContext";
 import { Cross } from "@/components/motion";
-
-const langs = ["ro", "de", "en"];
 
 function useNav() {
   const { t } = useLang();
@@ -46,26 +45,6 @@ function DonateButton({ testid, className = "" }) {
       <Cross className="w-3 h-5" color="currentColor" />
       {label}
     </Link>
-  );
-}
-
-function LangSwitcher() {
-  const { lang, setLang } = useLang();
-  return (
-    <div className="flex items-center gap-1" data-testid="lang-switcher">
-      {langs.map((l) => (
-        <button
-          key={l}
-          data-testid={`lang-${l}`}
-          onClick={() => setLang(l)}
-          className={`px-2 py-1 text-xs uppercase tracking-widest transition-colors ${
-            lang === l ? "text-byzgold font-bold" : "text-inkbrown/50 hover:text-inkbrown"
-          }`}
-        >
-          {l}
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -127,7 +106,6 @@ function Navbar() {
         </nav>
 
         <div className="hidden xl:flex items-center gap-4">
-          <LangSwitcher />
           <DonateButton testid="header-donate-btn" />
         </div>
 
@@ -168,8 +146,7 @@ function Navbar() {
                   )}
                 </div>
               ))}
-              <div className="pt-6 flex items-center justify-between">
-                <LangSwitcher />
+              <div className="pt-6 flex items-center justify-end">
                 <DonateButton testid="mobile-donate-btn" />
               </div>
             </div>
@@ -260,8 +237,12 @@ export default function Layout({ children }) {
   );
 }
 
-// Reusable page hero for internal pages
-export function PageHero({ kicker, title, intro }) {
+// Reusable page hero for internal pages (editable via pageKey)
+export function PageHero({ kicker, title, intro, pageKey }) {
+  const { lang } = useLang();
+  const { pc } = useSiteContent();
+  const finalTitle = pageKey ? pc(pageKey, "title", lang, title) : title;
+  const finalIntro = pageKey ? pc(pageKey, "intro", lang, intro) : intro;
   return (
     <section className="pt-36 pb-16 bg-creamalt relative grain overflow-hidden" data-testid="page-hero">
       <div className="max-w-5xl mx-auto px-5 lg:px-8 relative z-10">
@@ -269,8 +250,8 @@ export function PageHero({ kicker, title, intro }) {
         <motion.h1
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22,1,0.36,1] }}
           className="font-serif text-5xl md:text-6xl text-inkbrown leading-none mb-6"
-        >{title}</motion.h1>
-        {intro && <p className="text-lg md:text-xl text-inkbrown/70 max-w-3xl leading-relaxed">{intro}</p>}
+        >{finalTitle}</motion.h1>
+        {finalIntro && <p className="text-lg md:text-xl text-inkbrown/70 max-w-3xl leading-relaxed">{finalIntro}</p>}
         <div className="byz-rule mt-10 max-w-xs" />
       </div>
     </section>

@@ -77,6 +77,9 @@ class Settings(BaseModel):
     office_hours: MultiLang = Field(default_factory=MultiLang)
     map_embed: str = ""
     donation_packages: List[DonationPackage] = Field(default_factory=list)
+    renov_goal: float = 0.0
+    renov_raised: float = 0.0
+    renov_note: MultiLang = Field(default_factory=MultiLang)
 
 class PageContentIn(BaseModel):
     texts: dict = Field(default_factory=dict)   # {blockKey: {ro,de,en}}
@@ -576,7 +579,11 @@ async def newsletter_list(user: dict = Depends(get_current_user)):
 
 @api.delete("/newsletter/subscribers/{sub_id}")
 async def newsletter_delete(sub_id: str, user: dict = Depends(get_current_user)):
-    await db.newsletter_subscribers.delete_one({"_id": ObjectId(sub_id)})
+    try:
+        oid = ObjectId(sub_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID invalid")
+    await db.newsletter_subscribers.delete_one({"_id": oid})
     return {"ok": True}
 
 @api.post("/newsletter/broadcast")
@@ -645,6 +652,11 @@ async def seed():
                 DonationPackage(id="brick", amount=250.0, label=MultiLang(ro="Cărămidă", de="Ziegel", en="Brick")),
                 DonationPackage(id="pillar", amount=500.0, label=MultiLang(ro="Stâlp", de="Säule", en="Pillar")),
             ],
+            renov_goal=150000.0,
+            renov_raised=42000.0,
+            renov_note=MultiLang(ro="Mulțumim tuturor celor care au contribuit până acum la înnoirea bisericii.",
+                                 de="Danke an alle, die bisher beigetragen haben.",
+                                 en="Thank you to all who have contributed so far."),
         ).model_dump()
         s["_id"] = "global"
         await db.settings.insert_one(s)
@@ -658,6 +670,12 @@ async def seed():
                 {"id": "brick", "amount": 250.0, "label": _ml("Cărămidă", "Ziegel", "Brick")},
                 {"id": "pillar", "amount": 500.0, "label": _ml("Stâlp", "Säule", "Pillar")},
             ]}})
+        if existing_s.get("renov_goal") in (None, 0, 0.0) and "renov_goal" not in existing_s:
+            await db.settings.update_one({"_id": "global"}, {"$set": {
+                "renov_goal": 150000.0, "renov_raised": 42000.0,
+                "renov_note": _ml("Mulțumim tuturor celor care au contribuit până acum la înnoirea bisericii.",
+                                  "Danke an alle, die bisher beigetragen haben.",
+                                  "Thank you to all who have contributed so far.")}})
     # sample content
     if await db.content.count_documents({}) == 0:
         await seed_content()

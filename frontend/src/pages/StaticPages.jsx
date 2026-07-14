@@ -13,7 +13,7 @@ export function About() {
   const p = t.pages.about;
   return (
     <div data-testid="about-page">
-      <PageHero kicker={t.nav.about} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.about} title={p.title} intro={p.intro} pageKey="about" />
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-5 lg:px-8 grid md:grid-cols-2 gap-8">
           <Reveal>
@@ -55,25 +55,26 @@ export function History() {
 }
 
 export function Community() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { pc } = useSiteContent();
   const p = t.pages.community;
   return (
     <div data-testid="community-page">
-      <PageHero kicker={t.nav.about} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.about} title={p.title} intro={p.intro} pageKey="community" />
       <section className="py-16 bg-cream">
         <div className="max-w-5xl mx-auto px-5 lg:px-8 grid md:grid-cols-2 gap-12">
           <Reveal>
-            <h3 className="font-serif text-3xl text-inkbrown mb-6">{p.groups}</h3>
+            <h3 className="font-serif text-3xl text-inkbrown mb-6">{pc("community", "groups", lang, p.groups)}</h3>
             <ul className="space-y-4 text-lg text-inkbrown/80">
-              {[p.g1, p.g2, p.g3].map((g, i) => (
+              {[pc("community", "g1", lang, p.g1), pc("community", "g2", lang, p.g2), pc("community", "g3", lang, p.g3)].map((g, i) => (
                 <li key={i} className="flex items-center gap-3"><Cross className="w-3 h-6" /> {g}</li>
               ))}
             </ul>
           </Reveal>
           <Reveal delay={0.1}>
-            <h3 className="font-serif text-3xl text-inkbrown mb-6">{p.activities}</h3>
+            <h3 className="font-serif text-3xl text-inkbrown mb-6">{pc("community", "activities", lang, p.activities)}</h3>
             <ul className="space-y-4 text-lg text-inkbrown/80">
-              {[p.a1, p.a2, p.a3].map((a, i) => (
+              {[pc("community", "a1", lang, p.a1), pc("community", "a2", lang, p.a2), pc("community", "a3", lang, p.a3)].map((a, i) => (
                 <li key={i} className="flex items-center gap-3"><Cross className="w-3 h-6" /> {a}</li>
               ))}
             </ul>
@@ -97,7 +98,7 @@ export function ResourcesHub() {
   ];
   return (
     <div data-testid="resources-page">
-      <PageHero kicker={t.nav.resources} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.resources} title={p.title} intro={p.intro} pageKey="resources" />
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-5 lg:px-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((c, i) => (

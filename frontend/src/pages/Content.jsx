@@ -26,7 +26,7 @@ export function ContentList({ kind, category, base, pageKey }) {
 
   return (
     <div data-testid={`list-${pageKey}`}>
-      <PageHero kicker={t.nav.resources && category ? t.nav.resources : t.parishShort} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.resources && category ? t.nav.resources : t.parishShort} title={p.title} intro={p.intro} pageKey={pageKey} />
       <section className="py-20 bg-cream">
         <div className="max-w-6xl mx-auto px-5 lg:px-8">
           {items === null && <p className="text-inkbrown/60">{t.common.loading}</p>}

@@ -146,7 +146,7 @@ export default function Donate() {
 
   return (
     <div data-testid="donate-page">
-      <PageHero kicker={t.nav.donate} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.donate} title={p.title} intro={p.intro} pageKey="donate" />
       <section className="py-16 bg-cream">
         <ReturnStatus />
         <div className="max-w-6xl mx-auto px-5 lg:px-8 grid lg:grid-cols-2 gap-8">
