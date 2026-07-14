@@ -33,3 +33,10 @@ admin@parohiasigmir.ro / Sigmir2025! (see test_credentials.md)
 - P2: Brute-force login lockout
 - P2: Restrict CORS_ORIGINS to explicit frontend URL
 - P2: WordPress export/implementation guide document (CPT/ACF mapping already reflected in data model)
+
+## Update (2026-07-14) — Stripe Donations
+- Integrated Stripe Checkout (emergentintegrations, key sk_test_emergent) for online donations in RON.
+- Preset server-side packages: seed=50, candle=100, brick=250, pillar=500 RON + custom (5..50000).
+- Endpoints: POST /api/donations/checkout, GET /api/donations/status/{id}, POST /api/webhook/stripe, GET /api/donations/packages. Collection: payment_transactions.
+- Frontend /doneaza: Stripe card panel (presets + custom) with return polling + status banner; bank IBAN card retained.
+- Security verified: amounts resolved server-side only; frontend never sends amount. Tested 100% (iteration_2).
