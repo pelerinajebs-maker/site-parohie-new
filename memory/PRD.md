@@ -53,3 +53,9 @@ admin@parohiasigmir.ro / Sigmir2025! (see test_credentials.md)
 - Super-admin editable content: /api/pages GET (public), /api/pages/{key} PUT (auth). SiteContentContext overrides i18n on Home + History (texts + images). Admin 'Pagini' tab.
 - Donation amounts editable: settings.donation_packages drives /api/donations/packages and checkout (server-side). Admin Settings packages editor.
 - Admin new tabs: Pagini, Newsletter. Tested 100% (iteration_3).
+
+## Update (2026-07-14) — Bară progres renovare + RO-only + editare completă
+- Renovation fund progress bar on /renovare (raised/goal/%, gallery thumbs, animated). Editable via settings.renov_goal/renov_raised/renov_note (admin Setări).
+- Site is now Romanian-only: language switcher removed; lang locked to 'ro'. Admin content editors simplified to RO-only.
+- Super-admin can edit ALL pages/subpages (title/intro + rich fields for home/history/community/renovation) via admin 'Pagini' tab (PAGE_CONFIG, /api/pages). PageHero supports pageKey override.
+- Tested 100% (iteration_4).
