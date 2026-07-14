@@ -3,27 +3,30 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Copy, ExternalLink, Landmark, CreditCard, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
-import { useLang } from "@/i18n";
+import { useLang, ml } from "@/i18n";
 import { useSettings } from "@/context/SettingsContext";
 import { PageHero } from "@/components/Layout";
 import { Reveal, Cross } from "@/components/motion";
 import { Input } from "@/components/ui/input";
 
-const PRESETS = [
-  { id: "seed", amount: 50 },
-  { id: "candle", amount: 100 },
-  { id: "brick", amount: 250 },
-  { id: "pillar", amount: 500 },
-];
-
 function StripePanel() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const p = t.pages.donate;
+  const [packages, setPackages] = useState([]);
   const [selected, setSelected] = useState("candle");
   const [custom, setCustom] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    api.get("/donations/packages").then((r) => {
+      const { packages: pk, labels } = r.data;
+      const arr = Object.keys(pk).map((id) => ({ id, amount: pk[id], label: labels?.[id] }));
+      setPackages(arr);
+      if (arr.length && !arr.find((a) => a.id === "candle")) setSelected(arr[0].id);
+    }).catch(() => {});
+  }, []);
 
   const pay = async () => {
     setLoading(true);
@@ -51,7 +54,7 @@ function StripePanel() {
       <p className="text-inkbrown/70 mb-6 leading-relaxed">{p.cardText}</p>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
-        {PRESETS.map((preset) => (
+        {packages.map((preset) => (
           <button
             key={preset.id}
             onClick={() => setSelected(preset.id)}
@@ -60,7 +63,7 @@ function StripePanel() {
               selected === preset.id ? "bg-byzgold border-byzgold text-inkbrown" : "border-byzgold/30 text-inkbrown hover:border-byzgold"
             }`}
           >
-            <div className="text-xs uppercase tracking-wide opacity-70">{p.presets[preset.id]}</div>
+            <div className="text-xs uppercase tracking-wide opacity-70">{ml(preset.label, lang) || p.presets[preset.id] || preset.id}</div>
             <div className="font-serif text-2xl">{preset.amount} <span className="text-sm">RON</span></div>
           </button>
         ))}

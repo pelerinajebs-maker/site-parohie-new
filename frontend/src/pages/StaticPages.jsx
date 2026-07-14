@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { useLang } from "@/i18n";
 import { PageHero } from "@/components/Layout";
 import { Reveal, Cross } from "@/components/motion";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const INTERIOR = "https://images.pexels.com/photos/19474821/pexels-photo-19474821.jpeg";
 
@@ -36,16 +37,17 @@ export function About() {
 }
 
 export function History() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { pc, media } = useSiteContent();
   const p = t.pages.history;
   return (
     <div data-testid="history-page">
-      <PageHero kicker={t.nav.about} title={p.title} intro={p.intro} />
+      <PageHero kicker={t.nav.about} title={pc("history", "title", lang, p.title)} intro={pc("history", "intro", lang, p.intro)} />
       <section className="py-16 bg-cream">
         <div className="max-w-3xl mx-auto px-5 lg:px-8 space-y-6 text-lg text-inkbrown/80 leading-relaxed">
-          <Reveal><img src={INTERIOR} alt="" className="w-full h-[420px] object-cover rounded-sm mb-8" /></Reveal>
-          <Reveal><p>{p.p1}</p></Reveal>
-          <Reveal delay={0.1}><p>{p.p2}</p></Reveal>
+          <Reveal><img src={media("history", "image", INTERIOR)} alt="" className="w-full h-[420px] object-cover rounded-sm mb-8" /></Reveal>
+          <Reveal><p>{pc("history", "p1", lang, p.p1)}</p></Reveal>
+          <Reveal delay={0.1}><p>{pc("history", "p2", lang, p.p2)}</p></Reveal>
         </div>
       </section>
     </div>
@@ -91,6 +93,7 @@ export function ResourcesHub() {
     { to: "/resurse/cuvantul-preotului", label: t.nav.priest },
     { to: "/resurse/catehizare", label: t.nav.catechesis },
     { to: "/resurse/rugaciuni", label: t.nav.prayers },
+    { to: "/resurse/newsletter", label: t.nav.newsletter },
   ];
   return (
     <div data-testid="resources-page">

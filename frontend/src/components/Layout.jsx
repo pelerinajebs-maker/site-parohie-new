@@ -26,6 +26,7 @@ function useNav() {
       { to: "/resurse/cuvantul-preotului", label: t.nav.priest },
       { to: "/resurse/catehizare", label: t.nav.catechesis },
       { to: "/resurse/rugaciuni", label: t.nav.prayers },
+      { to: "/resurse/newsletter", label: t.nav.newsletter },
     ]},
     { to: "/contact", label: t.nav.contact },
   ];

@@ -58,6 +58,11 @@ class RenovationItem(BaseModel):
     caption: MultiLang = Field(default_factory=MultiLang)
     date: Optional[str] = None
 
+class DonationPackage(BaseModel):
+    id: str
+    amount: float
+    label: MultiLang = Field(default_factory=MultiLang)
+
 class Settings(BaseModel):
     donation_enabled: bool = True
     donation_button_text: MultiLang = Field(default_factory=MultiLang)
@@ -71,6 +76,19 @@ class Settings(BaseModel):
     address: str = ""
     office_hours: MultiLang = Field(default_factory=MultiLang)
     map_embed: str = ""
+    donation_packages: List[DonationPackage] = Field(default_factory=list)
+
+class PageContentIn(BaseModel):
+    texts: dict = Field(default_factory=dict)   # {blockKey: {ro,de,en}}
+    media: dict = Field(default_factory=dict)   # {mediaKey: url}
+
+class NewsletterSubscribeIn(BaseModel):
+    email: EmailStr
+    name: Optional[str] = ""
+
+class BroadcastIn(BaseModel):
+    subject: str
+    body: str
 
 class ContactMessage(BaseModel):
     name: str
@@ -288,6 +306,30 @@ EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY", "")
 EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Parohia Sigmir")
 
+async def send_email(to_list, subject: str, html: str, reply_to: Optional[str] = None) -> bool:
+    if not EMAIL_KEY or not to_list:
+        return False
+    payload = {"to": to_list, "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
+    if reply_to:
+        payload["contact_email"] = reply_to
+    try:
+        async with httpx.AsyncClient(timeout=30) as c:
+            resp = await c.post(f"{EMAIL_BASE_URL}/api/v1/email/send",
+                                headers={"X-Email-Key": EMAIL_KEY}, json=payload)
+            resp.raise_for_status()
+        return True
+    except Exception as e:
+        logger.error(f"send_email failed: {e}")
+        return False
+
+async def get_donation_packages() -> dict:
+    """Return {package_id: amount} from settings, fallback to defaults."""
+    doc = await db.settings.find_one({"_id": "global"})
+    pkgs = (doc or {}).get("donation_packages") or []
+    if pkgs:
+        return {p["id"]: float(p["amount"]) for p in pkgs}
+    return dict(DONATION_PACKAGES)
+
 def donation_email_html(name: str, amount: float, currency: str) -> str:
     greeting = f"Dragă {name}" if name else "Dragă binefăcătorule"
     return f"""
@@ -361,10 +403,11 @@ async def create_donation_checkout(payload: DonationCheckoutIn):
     if not STRIPE_API_KEY:
         raise HTTPException(status_code=500, detail="Stripe nu este configurat")
     # amount resolved SERVER-SIDE only
+    packages = await get_donation_packages()
     if payload.package_id:
-        if payload.package_id not in DONATION_PACKAGES:
+        if payload.package_id not in packages:
             raise HTTPException(status_code=400, detail="Pachet invalid")
-        amount = DONATION_PACKAGES[payload.package_id]
+        amount = packages[payload.package_id]
     elif payload.custom_amount is not None:
         amount = round(float(payload.custom_amount), 2)
         if amount < CUSTOM_MIN or amount > CUSTOM_MAX:
@@ -456,9 +499,103 @@ async def stripe_webhook(request: Request):
 
 @api.get("/donations/packages")
 async def donation_packages():
+    doc = await db.settings.find_one({"_id": "global"})
+    pkgs = (doc or {}).get("donation_packages") or []
+    if pkgs:
+        packages = {p["id"]: float(p["amount"]) for p in pkgs}
+        labels = {p["id"]: p.get("label", {}) for p in pkgs}
+    else:
+        packages = dict(DONATION_PACKAGES)
+        labels = {}
     return {"currency": DONATION_CURRENCY.upper(),
-            "packages": DONATION_PACKAGES,
+            "packages": packages, "labels": labels,
             "custom_min": CUSTOM_MIN, "custom_max": CUSTOM_MAX}
+
+# ---- Page content (super-admin editable) ----
+@api.get("/pages")
+async def get_all_pages():
+    docs = await db.pages.find().to_list(200)
+    return {d["_id"]: {"texts": d.get("texts", {}), "media": d.get("media", {})} for d in docs}
+
+@api.get("/pages/{page_key}")
+async def get_page(page_key: str):
+    doc = await db.pages.find_one({"_id": page_key})
+    if not doc:
+        return {"texts": {}, "media": {}}
+    return {"texts": doc.get("texts", {}), "media": doc.get("media", {})}
+
+@api.put("/pages/{page_key}")
+async def put_page(page_key: str, payload: PageContentIn, user: dict = Depends(get_current_user)):
+    await db.pages.update_one({"_id": page_key},
+                              {"$set": {"texts": payload.texts, "media": payload.media,
+                                        "updated_at": now_iso()}}, upsert=True)
+    return {"ok": True}
+
+# ---- Newsletter ----
+def newsletter_welcome_html(name: str) -> str:
+    greeting = f"Dragă {name}" if name else "Dragă cititorule"
+    return f"""
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F4EFE6;padding:32px 0;font-family:Georgia,serif;">
+  <tr><td align="center"><table width="600" style="background:#FDFBF7;border:1px solid #DAA520;">
+    <tr><td style="background:#2C241B;padding:26px;text-align:center;">
+      <div style="color:#DAA520;font-size:12px;letter-spacing:3px;text-transform:uppercase;">Newsletter duhovnicesc</div>
+      <div style="color:#FDFBF7;font-size:24px;margin-top:6px;">Parohia Sfântul Ierarh Nicolae · Sigmir</div>
+    </td></tr>
+    <tr><td style="padding:34px 40px;color:#2C241B;font-family:Arial,sans-serif;">
+      <p style="font-size:19px;font-family:Georgia,serif;margin:0 0 14px;">{greeting},</p>
+      <p style="font-size:16px;line-height:1.7;">Îți mulțumim că te-ai abonat la newsletterul duhovnicesc al parohiei noastre.
+      Vei primi recomandări de lectură, articole și vești din viața comunității.</p>
+      <p style="font-size:16px;line-height:1.7;">Îți recomandăm cu drag publicațiile ortodoxe:</p>
+      <ul style="font-size:16px;line-height:1.9;">
+        <li><a href="https://ziarullumina.ro/" style="color:#800020;">Ziarul Lumina</a></li>
+        <li><a href="https://revistarenasterea.ro/" style="color:#800020;">Revista Renașterea</a></li>
+      </ul>
+      <div style="border-top:1px solid #DAA520;margin:22px 0;"></div>
+      <p style="font-size:14px;color:#800020;">Cu binecuvântare,<br/>Parohia Ortodoxă Română „Sfântul Ierarh Nicolae" din Sigmir</p>
+    </td></tr>
+  </table></td></tr>
+</table>
+"""
+
+@api.post("/newsletter/subscribe")
+async def newsletter_subscribe(payload: NewsletterSubscribeIn):
+    email = payload.email.lower()
+    existing = await db.newsletter_subscribers.find_one({"email": email})
+    if existing:
+        return {"ok": True, "already": True}
+    await db.newsletter_subscribers.insert_one({
+        "email": email, "name": payload.name or "", "created_at": now_iso()})
+    await send_email([email], "Bine ai venit la newsletterul parohiei • Sigmir",
+                     newsletter_welcome_html(payload.name or ""))
+    return {"ok": True, "already": False}
+
+@api.get("/newsletter/subscribers")
+async def newsletter_list(user: dict = Depends(get_current_user)):
+    docs = await db.newsletter_subscribers.find().sort("created_at", -1).to_list(2000)
+    return [serialize(d) for d in docs]
+
+@api.delete("/newsletter/subscribers/{sub_id}")
+async def newsletter_delete(sub_id: str, user: dict = Depends(get_current_user)):
+    await db.newsletter_subscribers.delete_one({"_id": ObjectId(sub_id)})
+    return {"ok": True}
+
+@api.post("/newsletter/broadcast")
+async def newsletter_broadcast(payload: BroadcastIn, user: dict = Depends(get_current_user)):
+    subs = await db.newsletter_subscribers.find().to_list(5000)
+    emails = [s["email"] for s in subs if s.get("email")]
+    if not emails:
+        return {"ok": True, "sent": 0}
+    html = f"""<table width="100%" style="background:#F4EFE6;padding:24px 0;font-family:Arial,sans-serif;">
+      <tr><td align="center"><table width="600" style="background:#FDFBF7;border:1px solid #DAA520;">
+      <tr><td style="background:#2C241B;padding:20px;text-align:center;color:#DAA520;font-family:Georgia,serif;font-size:20px;">
+        Parohia Sfântul Ierarh Nicolae · Sigmir</td></tr>
+      <tr><td style="padding:30px 36px;color:#2C241B;font-size:16px;line-height:1.7;">{payload.body}</td></tr>
+      </table></td></tr></table>"""
+    sent = 0
+    for em in emails:
+        if await send_email([em], payload.subject, html):
+            sent += 1
+    return {"ok": True, "sent": sent}
 
 app.include_router(api)
 
@@ -502,9 +639,25 @@ async def seed():
             address="Sat Sigmir, comuna Șieu-Măgheruș, Bistrița-Năsăud, România",
             office_hours=MultiLang(ro="Luni–Vineri: 09:00–17:00",
                                    de="Mo–Fr: 09:00–17:00", en="Mon–Fri: 09:00–17:00"),
+            donation_packages=[
+                DonationPackage(id="seed", amount=50.0, label=MultiLang(ro="Sămânță", de="Samen", en="Seed")),
+                DonationPackage(id="candle", amount=100.0, label=MultiLang(ro="Lumânare", de="Kerze", en="Candle")),
+                DonationPackage(id="brick", amount=250.0, label=MultiLang(ro="Cărămidă", de="Ziegel", en="Brick")),
+                DonationPackage(id="pillar", amount=500.0, label=MultiLang(ro="Stâlp", de="Säule", en="Pillar")),
+            ],
         ).model_dump()
         s["_id"] = "global"
         await db.settings.insert_one(s)
+    else:
+        # ensure donation_packages exist for older settings docs
+        existing_s = await db.settings.find_one({"_id": "global"})
+        if not existing_s.get("donation_packages"):
+            await db.settings.update_one({"_id": "global"}, {"$set": {"donation_packages": [
+                {"id": "seed", "amount": 50.0, "label": _ml("Sămânță", "Samen", "Seed")},
+                {"id": "candle", "amount": 100.0, "label": _ml("Lumânare", "Kerze", "Candle")},
+                {"id": "brick", "amount": 250.0, "label": _ml("Cărămidă", "Ziegel", "Brick")},
+                {"id": "pillar", "amount": 500.0, "label": _ml("Stâlp", "Säule", "Pillar")},
+            ]}})
     # sample content
     if await db.content.count_documents({}) == 0:
         await seed_content()

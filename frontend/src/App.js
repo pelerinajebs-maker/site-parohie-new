@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LangProvider } from "@/i18n";
 import { AuthProvider } from "@/context/AuthContext";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { SiteContentProvider } from "@/context/SiteContentContext";
 import Layout from "@/components/Layout";
 import Home from "@/pages/Home";
 import { About, History, Community, ResourcesHub } from "@/pages/StaticPages";
@@ -11,6 +12,7 @@ import CalendarPage from "@/pages/CalendarPage";
 import Renovation from "@/pages/Renovation";
 import Contact from "@/pages/Contact";
 import Donate from "@/pages/Donate";
+import Newsletter from "@/pages/Newsletter";
 import Login from "@/pages/Login";
 import Admin from "@/pages/Admin";
 
@@ -23,6 +25,7 @@ function App() {
     <LangProvider>
       <AuthProvider>
         <SettingsProvider>
+          <SiteContentProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Site><Home /></Site>} />
@@ -48,6 +51,7 @@ function App() {
               <Route path="/resurse/catehizare/:id" element={<Site><ContentDetail base="/resurse/catehizare" /></Site>} />
               <Route path="/resurse/rugaciuni" element={<Site><ContentList kind="resource" category="prayers" base="/resurse/rugaciuni" pageKey="prayers" /></Site>} />
               <Route path="/resurse/rugaciuni/:id" element={<Site><ContentDetail base="/resurse/rugaciuni" /></Site>} />
+              <Route path="/resurse/newsletter" element={<Site><Newsletter /></Site>} />
 
               <Route path="/contact" element={<Site><Contact /></Site>} />
               <Route path="/doneaza" element={<Site><Donate /></Site>} />
@@ -56,6 +60,7 @@ function App() {
               <Route path="/admin" element={<Admin />} />
             </Routes>
           </BrowserRouter>
+          </SiteContentProvider>
         </SettingsProvider>
       </AuthProvider>
     </LangProvider>

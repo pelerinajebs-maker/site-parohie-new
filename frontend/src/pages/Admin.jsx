@@ -10,9 +10,45 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const LANGS = ["ro", "de", "en"];
 const emptyML = { ro: "", de: "", en: "" };
+
+// Editable page config: which text blocks + media each page exposes
+const PAGE_CONFIG = {
+  home: {
+    label: "Pagina principală",
+    texts: [
+      { k: "hero_kicker", l: "Hero — supratitlu" },
+      { k: "hero_title", l: "Hero — titlu (câte o linie pe rând)", textarea: true },
+      { k: "hero_subtitle", l: "Hero — subtitlu", textarea: true },
+      { k: "about_title", l: "Despre — titlu" },
+      { k: "about_text", l: "Despre — text", textarea: true },
+      { k: "news_title", l: "Anunțuri/Revistă — titlu" },
+      { k: "news_text", l: "Anunțuri/Revistă — text", textarea: true },
+      { k: "renov_title", l: "Renovare — titlu" },
+      { k: "renov_text", l: "Renovare — text", textarea: true },
+      { k: "contact_title", l: "Contact — titlu" },
+      { k: "contact_text", l: "Contact — text", textarea: true },
+    ],
+    media: [
+      { k: "hero_image", l: "Imagine hero (fundal biserică)" },
+      { k: "about_image", l: "Imagine secțiune Despre" },
+      { k: "renovation_image", l: "Imagine secțiune Renovare" },
+    ],
+  },
+  history: {
+    label: "Istoric biserică",
+    texts: [
+      { k: "title", l: "Titlu" },
+      { k: "intro", l: "Introducere", textarea: true },
+      { k: "p1", l: "Paragraf 1", textarea: true },
+      { k: "p2", l: "Paragraf 2", textarea: true },
+    ],
+    media: [{ k: "image", l: "Imagine principală" }],
+  },
+};
 
 function MLField({ label, value, onChange, textarea }) {
   const Comp = textarea ? Textarea : Input;
@@ -148,6 +184,99 @@ function SettingField({ label, k, s, setS }) {
   );
 }
 
+function PagesManager() {
+  const { refresh } = useSiteContent();
+  const [page, setPage] = useState("home");
+  const [texts, setTexts] = useState({});
+  const [media, setMedia] = useState({});
+  const cfg = PAGE_CONFIG[page];
+
+  const load = (pg) => {
+    api.get(`/pages/${pg}`).then((r) => {
+      setTexts(r.data.texts || {});
+      setMedia(r.data.media || {});
+    }).catch(() => { setTexts({}); setMedia({}); });
+  };
+  useEffect(() => { load(page); }, [page]);
+
+  const save = async () => {
+    try {
+      await api.put(`/pages/${page}`, { texts, media });
+      toast.success("Conținut salvat");
+      refresh();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2 mb-6">
+        {Object.keys(PAGE_CONFIG).map((pg) => (
+          <button key={pg} onClick={() => setPage(pg)} data-testid={`page-tab-${pg}`}
+            className={`px-4 py-2 rounded-sm border text-sm transition-colors ${page === pg ? "bg-byzgold border-byzgold text-inkbrown" : "border-byzgold/30 hover:border-byzgold"}`}>
+            {PAGE_CONFIG[pg].label}
+          </button>
+        ))}
+      </div>
+      <div className="bg-cream border border-byzgold/30 rounded-sm p-6 space-y-5" data-testid="pages-editor">
+        <p className="text-sm text-inkbrown/60">Lasă un câmp gol pentru a folosi textul implicit. Poți completa RO / DE / EN.</p>
+        {cfg.texts.map((f) => (
+          <MLField key={f.k} label={f.l} value={texts[f.k] || { ...emptyML }} onChange={(v) => setTexts({ ...texts, [f.k]: v })} textarea={f.textarea} />
+        ))}
+        {cfg.media.map((m) => (
+          <div key={m.k}>
+            <label className="text-sm font-semibold block mb-1 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> {m.l} (URL)</label>
+            <Input value={media[m.k] || ""} onChange={(e) => setMedia({ ...media, [m.k]: e.target.value })} placeholder="https://..." className="bg-creamalt border-byzgold/30" data-testid={`media-${m.k}`} />
+            {media[m.k] && <img src={media[m.k]} alt="" className="mt-2 h-24 rounded-sm object-cover" />}
+          </div>
+        ))}
+        <button onClick={save} data-testid="pages-save" className="inline-flex items-center gap-2 bg-inkbrown text-cream px-6 py-3 rounded-sm hover:bg-byzgold hover:text-inkbrown transition-colors"><Save className="w-4 h-4" /> Salvează</button>
+      </div>
+    </div>
+  );
+}
+
+function NewsletterManager() {
+  const [subs, setSubs] = useState([]);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const load = () => api.get("/newsletter/subscribers").then((r) => setSubs(r.data)).catch(() => {});
+  useEffect(() => { load(); }, []);
+  const del = async (id) => { await api.delete(`/newsletter/subscribers/${id}`); load(); };
+  const broadcast = async () => {
+    if (!subject || !body) return toast.error("Completează subiect și mesaj");
+    setSending(true);
+    try {
+      const { data } = await api.post("/newsletter/broadcast", { subject, body });
+      toast.success(`Trimis către ${data.sent} abonați`);
+      setSubject(""); setBody("");
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+    finally { setSending(false); }
+  };
+  return (
+    <div className="grid lg:grid-cols-2 gap-8">
+      <div>
+        <h3 className="font-serif text-2xl text-inkbrown mb-4">Abonați ({subs.length})</h3>
+        <div className="space-y-2 max-h-[420px] overflow-y-auto">
+          {subs.length === 0 && <p className="text-inkbrown/50">Niciun abonat.</p>}
+          {subs.map((s) => (
+            <div key={s.id} className="flex items-center justify-between bg-cream border border-byzgold/30 rounded-sm px-4 py-3" data-testid={`sub-${s.id}`}>
+              <div><span className="text-inkbrown">{s.email}</span>{s.name && <span className="text-inkbrown/50 text-sm"> · {s.name}</span>}</div>
+              <button onClick={() => del(s.id)} className="text-burgundy hover:text-inkbrown"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-cream border border-byzgold/30 rounded-sm p-6 space-y-4 h-fit">
+        <h3 className="font-serif text-2xl text-inkbrown">Trimite newsletter</h3>
+        <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subiect" className="bg-creamalt border-byzgold/30" data-testid="broadcast-subject" />
+        <Textarea rows={6} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Mesaj (poți folosi HTML simplu)" className="bg-creamalt border-byzgold/30" data-testid="broadcast-body" />
+        <button onClick={broadcast} disabled={sending} data-testid="broadcast-send" className="inline-flex items-center gap-2 bg-inkbrown text-cream px-6 py-3 rounded-sm hover:bg-byzgold hover:text-inkbrown transition-colors disabled:opacity-60"><Save className="w-4 h-4" /> Trimite tuturor</button>
+      </div>
+    </div>
+  );
+}
+
 function SettingsManager() {
   const { settings, refresh } = useSettings();
   const [s, setS] = useState(null);
@@ -157,7 +286,6 @@ function SettingsManager() {
     try { await api.put("/settings", s); toast.success("Setări salvate"); refresh(); }
     catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
-  const F = (label, k) => <SettingField label={label} k={k} s={s} setS={setS} />;
   return (
     <div className="bg-cream border border-byzgold/30 rounded-sm p-6 space-y-4 max-w-3xl">
       <div className="flex items-center gap-3">
@@ -165,15 +293,43 @@ function SettingsManager() {
         <span className="text-sm">Buton donații activ</span>
       </div>
       <MLField label="Text buton donații" value={s.donation_button_text} onChange={(v) => setS({ ...s, donation_button_text: v })} />
-      {F("Link donații extern", "donation_external_link")}
-      {F("IBAN", "iban")}
-      {F("Titular cont", "account_holder")}
-      {F("Bancă", "bank_name")}
-      {F("Număr WhatsApp (ex. 40787867540)", "whatsapp_number")}
-      {F("Telefon", "phone")}
-      {F("Email", "email")}
-      {F("Adresă", "address")}
+      <SettingField label="Link donații extern" k="donation_external_link" s={s} setS={setS} />
+      <SettingField label="IBAN" k="iban" s={s} setS={setS} />
+      <SettingField label="Titular cont" k="account_holder" s={s} setS={setS} />
+      <SettingField label="Bancă" k="bank_name" s={s} setS={setS} />
+      <SettingField label="Număr WhatsApp (ex. 40787867540)" k="whatsapp_number" s={s} setS={setS} />
+      <SettingField label="Telefon" k="phone" s={s} setS={setS} />
+      <SettingField label="Email" k="email" s={s} setS={setS} />
+      <SettingField label="Adresă" k="address" s={s} setS={setS} />
       <MLField label="Program oficiu" value={s.office_hours} onChange={(v) => setS({ ...s, office_hours: v })} />
+
+      <div className="pt-4 border-t border-byzgold/20">
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-semibold text-inkbrown">Sume donații (RON)</span>
+          <button onClick={() => setS({ ...s, donation_packages: [...(s.donation_packages || []), { id: `pkg${Date.now()}`, amount: 0, label: { ...emptyML } }] })}
+            data-testid="add-package" className="inline-flex items-center gap-1 text-sm bg-byzgold text-inkbrown px-3 py-1.5 rounded-sm"><Plus className="w-3 h-3" /> Adaugă</button>
+        </div>
+        <div className="space-y-3">
+          {(s.donation_packages || []).map((pkg, idx) => (
+            <div key={idx} className="flex flex-wrap items-end gap-2 bg-creamalt border border-byzgold/20 rounded-sm p-3" data-testid={`package-row-${idx}`}>
+              <div className="w-28">
+                <label className="text-xs text-inkbrown/60">Sumă</label>
+                <Input type="number" value={pkg.amount} onChange={(e) => { const arr = [...s.donation_packages]; arr[idx] = { ...pkg, amount: parseFloat(e.target.value) || 0 }; setS({ ...s, donation_packages: arr }); }} className="bg-cream border-byzgold/30" data-testid={`package-amount-${idx}`} />
+              </div>
+              <div className="flex-1 min-w-[240px]">
+                <label className="text-xs text-inkbrown/60">Etichetă (RO / DE / EN)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {LANGS.map((l) => (
+                    <Input key={l} placeholder={l.toUpperCase()} value={pkg.label?.[l] || ""} onChange={(e) => { const arr = [...s.donation_packages]; arr[idx] = { ...pkg, label: { ...pkg.label, [l]: e.target.value } }; setS({ ...s, donation_packages: arr }); }} className="bg-cream border-byzgold/30 text-sm" />
+                  ))}
+                </div>
+              </div>
+              <button onClick={() => { const arr = s.donation_packages.filter((_, i) => i !== idx); setS({ ...s, donation_packages: arr }); }} className="p-2 text-burgundy" data-testid={`package-del-${idx}`}><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <button onClick={save} data-testid="settings-save" className="inline-flex items-center gap-2 bg-inkbrown text-cream px-6 py-3 rounded-sm hover:bg-byzgold hover:text-inkbrown transition-colors"><Save className="w-4 h-4" /> Salvează setările</button>
     </div>
   );
@@ -213,7 +369,7 @@ export default function Admin() {
       <div className="max-w-6xl mx-auto px-5 py-10">
         <Tabs defaultValue="announcements">
           <TabsList className="flex flex-wrap gap-2 bg-transparent h-auto mb-6">
-            {[["announcements","Anunțuri"],["magazine","Revistă"],["resources","Resurse"],["renovation","Renovare"],["messages","Mesaje"],["settings","Setări"]].map(([v,l]) => (
+            {[["announcements","Anunțuri"],["magazine","Revistă"],["resources","Resurse"],["renovation","Renovare"],["pages","Pagini"],["newsletter","Newsletter"],["messages","Mesaje"],["settings","Setări"]].map(([v,l]) => (
               <TabsTrigger key={v} value={v} data-testid={`tab-${v}`} className="data-[state=active]:bg-byzgold data-[state=active]:text-inkbrown border border-byzgold/30 rounded-sm px-4 py-2">{l}</TabsTrigger>
             ))}
           </TabsList>
@@ -221,6 +377,8 @@ export default function Admin() {
           <TabsContent value="magazine"><ContentManager kind="magazine" /></TabsContent>
           <TabsContent value="resources"><ContentManager kind="resource" withCategory /></TabsContent>
           <TabsContent value="renovation"><RenovationManager /></TabsContent>
+          <TabsContent value="pages"><PagesManager /></TabsContent>
+          <TabsContent value="newsletter"><NewsletterManager /></TabsContent>
           <TabsContent value="messages"><Messages /></TabsContent>
           <TabsContent value="settings"><SettingsManager /></TabsContent>
         </Tabs>
