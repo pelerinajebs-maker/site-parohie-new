@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/login
+
+# Prevent crawling of test/demo pages
+Disallow: /test
+Disallow: /*.json$
+
+# Allow crawling of static assets
+Allow: /static/
+
+# Sitemap location
+Sitemap: https://parohiasigmir.ro/sitemap.xml
+
+# Crawl delay (seconds) - respecta serverul
+Crawl-delay: 1
