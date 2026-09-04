@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Plus, Trash2, Pencil, Save, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -155,8 +155,8 @@ function ContentManager({ kind, withCategory }) {
   const [editing, setEditing] = useState(null);
   const blank = { kind, category: withCategory ? "prayers" : null, title: { ...emptyML }, excerpt: { ...emptyML }, body: { ...emptyML }, image: "", published: true };
 
-  const load = () => api.get("/content", { params: { kind, all: true } }).then((r) => setItems(r.data)).catch(() => {});
-  useEffect(() => { load(); }, [kind]);
+  const load = useCallback(() => api.get("/content", { params: { kind, all: true } }).then((r) => setItems(r.data)).catch(() => {}), [kind]);
+  useEffect(() => { load(); }, [load]);
 
   const save = async () => {
     try {
