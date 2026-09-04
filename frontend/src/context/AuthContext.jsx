@@ -8,8 +8,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     api.get("/auth/me")
-      .then((r) => setUser(r.data))
-      .catch(() => setUser(false));
+      .then((r) => {
+        setUser(r.data);
+        console.log("✅ User authenticated:", r.data.email);
+      })
+      .catch((err) => {
+        console.warn("⚠️ Auth check failed (user not authenticated):", err.message);
+        setUser(false);
+      });
   }, []);
 
   const login = async (email, password) => {

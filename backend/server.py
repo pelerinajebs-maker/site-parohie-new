@@ -158,8 +158,19 @@ async def login(payload: LoginIn, response: Response):
     if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Email sau parolă incorecte")
     token = create_access_token(str(user["_id"]), email)
-    response.set_cookie(key="access_token", value=token, httponly=True,
-                        secure=True, samesite="none", max_age=43200, path="/")
+    
+    # Set secure cookie based on environment
+    is_production = os.environ.get('ENV', 'production').lower() == 'production'
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=is_production,  # Only require HTTPS in production
+        samesite="lax",        # Better compatibility than "none"
+        max_age=43200,
+        path="/"
+    )
+    logger.info(f"✅ User logged in: {email}")
     return {"id": str(user["_id"]), "email": email, "name": user.get("name"), "role": user.get("role")}
 
 @api.post("/auth/logout")
@@ -309,8 +320,15 @@ EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY", "")
 EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Parohia Sigmir")
 
+if not EMAIL_KEY:
+    logger.warning("⚠️ EMERGENT_EMAIL_KEY not configured - email features will be disabled")
+
 async def send_email(to_list, subject: str, html: str, reply_to: Optional[str] = None) -> bool:
-    if not EMAIL_KEY or not to_list:
+    if not EMAIL_KEY:
+        logger.error("❌ Cannot send email: EMERGENT_EMAIL_KEY not configured")
+        return False
+    if not to_list:
+        logger.error("❌ Cannot send email: no recipients provided")
         return False
     payload = {"to": to_list, "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
     if reply_to:
@@ -320,9 +338,10 @@ async def send_email(to_list, subject: str, html: str, reply_to: Optional[str] =
             resp = await c.post(f"{EMAIL_BASE_URL}/api/v1/email/send",
                                 headers={"X-Email-Key": EMAIL_KEY}, json=payload)
             resp.raise_for_status()
+        logger.info(f"✅ Email sent successfully to {', '.join(to_list[:2])}{'...' if len(to_list) > 2 else ''}")
         return True
     except Exception as e:
-        logger.error(f"send_email failed: {e}")
+        logger.error(f"❌ send_email failed: {e}")
         return False
 
 async def get_donation_packages() -> dict:
@@ -606,14 +625,6 @@ async def newsletter_broadcast(payload: BroadcastIn, user: dict = Depends(get_cu
 
 app.include_router(api)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -697,6 +708,21 @@ async def seed():
 def _ml(ro, de, en):
     return MultiLang(ro=ro, de=de, en=en).model_dump()
 
+# Configure CORS BEFORE including routes
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 async def seed_content():
     items = [
         {"kind": "announcement", "image": None, "published": True, "date": now_iso(),
@@ -751,10 +777,20 @@ async def seed_content():
     ]
     await db.content.insert_many(items)
 
+# Health check endpoint
+@api.get("/health")
+async def health_check():
+    """Verifică dacă API-ul este disponibil."""
+    return {"status": "ok", "service": "parohia-sigmir-api"}
+
 @app.on_event("startup")
 async def on_startup():
-    await seed()
-    logger.info("Startup complete, admin seeded.")
+    try:
+        await seed()
+        logger.info("✅ Startup complete, database seeded successfully.")
+    except Exception as e:
+        logger.error(f"❌ Seed failed during startup: {e}", exc_info=True)
+        # Server still starts even if seed fails, but logs the error
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
