@@ -2,17 +2,16 @@
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
-  # Frontend build directory
-  base = "frontend"
-  # Install dependencies first
-  command = "npm install --legacy-peer-deps && npm run build"
+  # Build command - install and build in frontend folder
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
   # Production directory (where static files are)
-  publish = "build"
+  publish = "frontend/build"
 
 [build.environment]
   # Build environment variables
   NODE_ENV = "production"
   CI = "true"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # Redirect all 404s to index.html for React Router
 [[redirects]]
