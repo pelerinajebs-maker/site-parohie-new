@@ -4,8 +4,8 @@
 [build]
   # Frontend build directory
   base = "frontend"
-  # Build command
-  command = "npm run build"
+  # Install dependencies first
+  command = "npm install --legacy-peer-deps && npm run build"
   # Production directory (where static files are)
   publish = "build"
 
